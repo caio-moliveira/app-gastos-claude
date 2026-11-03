@@ -53,3 +53,20 @@ Formato: contexto, alternativas, decisão e consequências.
 - Alternativas consideradas: Jest; `supabase start` local (exige Docker).
 - Decisão: Vitest roda tudo em `npm test`. Testes unitários ficam junto do código (`src/**/*.test.ts`). Testes de integração (`tests/integration`) criam usuários efêmeros via Admin API com `SUPABASE_SERVICE_ROLE_KEY` (só local), fazem login com a chave pública e verificam a matriz de permissões; ao final os usuários são apagados (cascata). Sem variáveis do Supabase eles são pulados (`describe.skipIf`).
 - Consequências: os testes de RLS exercitam exatamente as policies de produção. Rodam em série para não esbarrar em rate limit do Auth.
+
+## ADR-009: Cartão de crédito como conta comum com saldo negativo
+- Contexto: PRD §5 e §15.2 — o MVP não modela fatura nem fechamento (§13).
+- Decisão: `credit_card` é apenas um tipo de conta. Compras são despesas na conta do cartão (o saldo fica negativo) e o pagamento da fatura é uma **transferência** da conta corrente para o cartão. O saldo inicial aceita valores negativos (dívida já existente).
+- Consequências: o saldo total do espaço já desconta o que se deve no cartão; não há ciclo de fatura, vencimento nem limite.
+
+## ADR-010: Integridade entre espaços por FK composta + trigger
+- Contexto: §8 exige que uma transação nunca aponte para conta ou categoria de outro espaço, por constraint ou trigger, além da validação no servidor.
+- Alternativas consideradas: só trigger; só validação na aplicação.
+- Decisão: `accounts` e `categories` têm `unique (space_id, id)` e `transactions` referencia `(space_id, account_id)`, `(space_id, category_id)` e `(space_id, transfer_to_account_id)`. Um `check` fixa o formato por tipo (transferência sem categoria e com destino ≠ origem; receita/despesa com categoria). Um trigger garante que a categoria tem o mesmo tipo da transação, que `space_id` não muda e que `created_by` é o usuário da sessão. No servidor, `checkTransactionRefs` repete a checagem para dar mensagens amigáveis.
+- Consequências: mesmo chamadas diretas à API não conseguem misturar espaços. Contas com transações não podem ser excluídas (FK) — a UI oferece arquivar; categorias em uso são excluídas pela RPC `claude.delete_category`, que move as transações (SECURITY INVOKER, então a RLS continua valendo).
+
+## ADR-011: Saldos e totais calculados em TypeScript puro sobre o razão do espaço
+- Contexto: §5 pede saldo calculado (nunca armazenado) e §10 exige testes unitários das regras sem banco.
+- Alternativas consideradas: views/funções SQL de agregação.
+- Decisão: as regras vivem em `src/lib/finance/rules.ts` (funções puras). As telas carregam o "razão" do espaço (`getLedger`: só as colunas necessárias, paginado de 1000 em 1000 para não esbarrar no limite do PostgREST) e aplicam as funções. Valores são `bigint` no banco e `number` inteiro em centavos no app (seguro até 2^53).
+- Consequências: uma única implementação das regras, testada e usada pela UI e pelo agente. O volume do MVP (centenas de transações por espaço por ano) é trivial; se crescer, a mesma lógica pode virar agregação SQL.
