@@ -342,10 +342,12 @@ Se sobrar tempo depois do Definition of Done, a única extensão permitida é im
 
 O MVP está pronto quando todos os itens abaixo forem verdadeiros na URL de produção, não só em `localhost`.
 
-- [ ] Cadastro, login e logout funcionam; usuário novo recebe o espaço `Pessoal` com categorias padrão.
+- [x] Cadastro, login e logout funcionam; usuário novo recebe o espaço `Pessoal` com categorias padrão.
+  - Verificado (etapa 2): `tests/e2e/auth-spaces.spec.ts` + `tests/e2e/finance.spec.ts` contra o deploy da Vercel (cadastro → `Pessoal` com 12 categorias e conta Carteira → logout → login); `tests/integration/finance-rls.test.ts` confere os padrões no banco.
 - [ ] Os três usuários do seed existem e entram com as credenciais do README.
 - [ ] Criar, editar e excluir transação atualiza a lista e os cards do dashboard.
-- [ ] Transferência entre contas altera os dois saldos e não aparece como receita nem despesa.
+- [x] Transferência entre contas altera os dois saldos e não aparece como receita nem despesa.
+  - Verificado (etapa 2): E2E na Vercel (R$ 50 de "Banco E2E" → Carteira: saldos R$ 700 e R$ 50, receitas/despesas do mês inalteradas) e teste unitário "Receita e despesa do mês excluem transferências".
 - [ ] Dashboard mostra os quatro cards, os dois gráficos, orçamentos do mês e as 5 maiores despesas, e muda ao trocar o mês.
 - [ ] Orçamento criado, editado inline e copiado do mês anterior; status `ok`, `warning` e `exceeded` visíveis com o seed.
 - [ ] Seletor de espaço troca entre `Pessoal` e `Casa` e todos os números mudam de acordo.
