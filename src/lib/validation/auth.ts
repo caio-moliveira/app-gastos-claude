@@ -13,7 +13,17 @@ export const signupSchema = z.object({
 
 /** Só aceita caminhos internos para evitar open redirect no `?next=`. */
 export function safeNextPath(value: unknown): string {
-  if (typeof value !== "string") return "/";
-  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/";
-  return value;
+  if (typeof value !== "string" || value.length > 2048) return "/";
+  // Caracteres de controle e barra invertida são removidos/normalizados pelo parser de URL do navegador
+  // ("/\t/evil.com" vira "//evil.com"), então são recusados de saída.
+  if (!value.startsWith("/") || /[\x00-\x1F\x7F\\]/.test(value)) return "/";
+  const base = "http://internal.invalid";
+  let url: URL;
+  try {
+    url = new URL(value, base);
+  } catch {
+    return "/";
+  }
+  if (url.origin !== base) return "/";
+  return `${url.pathname}${url.search}${url.hash}`;
 }

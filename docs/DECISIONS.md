@@ -45,7 +45,7 @@ Formato: contexto, alternativas, decisão e consequências.
 
 ## ADR-007: Confirmação de e-mail desativada via `supabase/config.toml`
 - Contexto: §6.1 permite desativar a confirmação para a demonstração; o projeto estava com ela ativa.
-- Decisão: `supabase/config.toml` versionado com `[auth.email] enable_confirmations = false` e redirect URLs (`localhost` e `*.vercel.app`), aplicado com `supabase config push` (com aprovação do operador, pois o Auth é compartilhado). Os demais valores do arquivo foram alinhados ao remoto para que o push só mude isso.
+- Decisão: `supabase/config.toml` versionado com `[auth.email] enable_confirmations = false`, `site_url` de produção, senha mínima de 8 caracteres e redirect URLs restritas a `http://localhost:3000/**`, `https://cofre-claude.vercel.app/**` e aos previews do projeto (`https://cofre-claude-*-moliveiracaio.vercel.app/**`) — nunca `*.vercel.app`, que entregaria tokens de recuperação a qualquer site da Vercel. Aplicado com `supabase config push` (com aprovação do operador, pois o Auth é compartilhado). Os demais valores do arquivo foram alinhados ao remoto para que o push só mude isso.
 - Consequências: cadastro entra direto no app. Se o projeto exigir confirmação, o cadastro mostra a mensagem “Confirme seu e-mail para entrar.”.
 
 ## ADR-008: Vitest para unitários e integração; RLS testada contra o projeto hospedado

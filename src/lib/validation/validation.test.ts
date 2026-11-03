@@ -21,6 +21,10 @@ describe("validação de autenticação", () => {
     expect(safeNextPath("https://evil.com")).toBe("/");
     expect(safeNextPath("//evil.com")).toBe("/");
     expect(safeNextPath("/\\evil.com")).toBe("/");
+    expect(safeNextPath("/\t/evil.com")).toBe("/");
+    expect(safeNextPath("/\n/evil.com")).toBe("/");
+    expect(safeNextPath("/\r/evil.com")).toBe("/");
+    expect(safeNextPath("/s/abc?mes=2026-10#x")).toBe("/s/abc?mes=2026-10#x");
     expect(safeNextPath(undefined)).toBe("/");
   });
 });

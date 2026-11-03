@@ -70,6 +70,24 @@ describe.skipIf(!hasSupabase)("RLS de espaços e membros (Supabase)", () => {
     expect(byOwner.data).toEqual([{ name: "Casa Renomeada" }]);
   });
 
+  it("o dono só altera o nome: tipo e criador são imutáveis, e de membros só o papel muda", async () => {
+    const type = await owner.client.from("spaces").update({ type: "individual" }).eq("id", sharedSpaceId);
+    expect(type.error).not.toBeNull();
+
+    const createdBy = await owner.client.from("spaces").update({ created_by: outsider.id }).eq("id", sharedSpaceId);
+    expect(createdBy.error).not.toBeNull();
+
+    const moveMember = await owner.client
+      .from("space_members")
+      .update({ user_id: outsider.id })
+      .eq("space_id", sharedSpaceId)
+      .eq("user_id", viewer.id);
+    expect(moveMember.error).not.toBeNull();
+
+    const { data } = await adminClient().from("spaces").select("type, created_by").eq("id", sharedSpaceId).single();
+    expect(data).toEqual({ type: "shared", created_by: owner.id });
+  });
+
   it("ninguém cria espaço direto na tabela nem se adiciona como membro", async () => {
     const direct = await outsider.client
       .from("spaces")

@@ -52,7 +52,7 @@ create trigger claude_on_auth_user_created
 
 -- Perfis para usuários que já existiam no Auth.
 insert into claude.profiles (id, name)
-select u.id, coalesce(nullif(u.raw_user_meta_data ->> 'name', ''), split_part(coalesce(u.email, ''), '@', 1))
+select u.id, left(coalesce(nullif(u.raw_user_meta_data ->> 'name', ''), split_part(coalesce(u.email, ''), '@', 1)), 120)
 from auth.users u
 on conflict (id) do nothing;
 
