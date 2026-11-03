@@ -81,4 +81,9 @@ test("conta com saldo inicial de R$ 1.000, despesa de R$ 250 → saldo R$ 750; t
   await page.getByRole("dialog").getByRole("button", { name: "Excluir" }).click();
   await expect(page.getByTestId("transaction-row")).toHaveCount(1);
   await expect(page.getByTestId("month-expense")).toHaveText("R$ 0,00");
+
+  // Página além do fim redireciona em vez de quebrar.
+  await page.goto(`${new URL(page.url()).pathname}?pagina=99`);
+  await expect(page).not.toHaveURL(/pagina=99/);
+  await expect(page.getByTestId("transaction-row")).toHaveCount(1);
 });

@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, type ServerSupabase } from "@/lib/supabase/server";
 import type { Tx } from "@/lib/finance/rules";
 import type { AccountType, CategoryKind, TransactionType } from "@/lib/validation/finance";
 
@@ -98,35 +98,54 @@ export type TransactionFilters = {
 
 export const TRANSACTIONS_PAGE_SIZE = 25;
 
-/** Lista paginada para a tela de transações, ordenada por data decrescente. */
-export async function getTransactionsPage(
-  spaceId: string,
-  filters: TransactionFilters & { from?: string; to?: string },
-  page: number,
-): Promise<{ rows: TransactionRow[]; total: number }> {
-  const supabase = await createClient();
+type ListFilters = TransactionFilters & { from?: string; to?: string };
+
+const LIST_COLUMNS =
+  "id, space_id, account_id, category_id, type, amount_cents, date, description, notes, transfer_to_account_id";
+
+/** Consulta de transações com os filtros da tela (ids já validados como UUID pela página). */
+function filteredTransactions(supabase: ServerSupabase, spaceId: string, filters: ListFilters, head: boolean) {
   let query = supabase
     .from("transactions")
-    .select(
-      "id, space_id, account_id, category_id, type, amount_cents, date, description, notes, transfer_to_account_id",
-      { count: "exact" },
-    )
+    .select(LIST_COLUMNS, { count: "exact", head })
     .eq("space_id", spaceId);
   if (filters.from) query = query.gte("date", filters.from);
   if (filters.to) query = query.lte("date", filters.to);
-  if (filters.accountId) query = query.or(`account_id.eq.${filters.accountId},transfer_to_account_id.eq.${filters.accountId}`);
+  if (filters.accountId) {
+    query = query.or(`account_id.eq.${filters.accountId},transfer_to_account_id.eq.${filters.accountId}`);
+  }
   if (filters.categoryId) query = query.eq("category_id", filters.categoryId);
   if (filters.type) query = query.eq("type", filters.type);
   if (filters.search) {
     // Escapa curingas do ILIKE para buscar o texto literal.
-    const term = filters.search.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const term = filters.search.replace(/[\%_]/g, (c) => `\${c}`);
     query = query.ilike("description", `%${term}%`);
   }
+  return query;
+}
+
+/**
+ * Lista paginada para a tela de transações, ordenada por data decrescente (desempate por id).
+ * Página além do fim devolve `rows: []` com o total real, para a página redirecionar.
+ */
+export async function getTransactionsPage(
+  spaceId: string,
+  filters: ListFilters,
+  page: number,
+): Promise<{ rows: TransactionRow[]; total: number }> {
+  const supabase = await createClient();
   const start = (page - 1) * TRANSACTIONS_PAGE_SIZE;
-  const { data, error, count } = await query
+  const { data, error, count } = await filteredTransactions(supabase, spaceId, filters, false)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
+    // Desempate único: linhas inseridas juntas têm o mesmo created_at.
+    .order("id", { ascending: false })
     .range(start, start + TRANSACTIONS_PAGE_SIZE - 1);
+  if (error?.code === "PGRST103") {
+    const head = await filteredTransactions(supabase, spaceId, filters, true);
+    if (head.error) throw new Error("Não foi possível carregar as transações.");
+    return { rows: [], total: head.count ?? 0 };
+  }
   if (error) throw new Error("Não foi possível carregar as transações.");
   return {
     rows: (data ?? []).map((t) => ({ ...t, type: t.type as TransactionType, amount_cents: Number(t.amount_cents) })),

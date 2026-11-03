@@ -173,6 +173,40 @@ describe.skipIf(!hasSupabase)("contas, categorias e transações (Supabase)", ()
     await editor.client.from("transactions").delete().eq("id", ok.data!.id);
   });
 
+  it("transação não muda de espaço e o autor não pode ser forjado", async () => {
+    const created = await editor.client
+      .from("transactions")
+      .insert({
+        space_id: spaceId,
+        account_id: accountId,
+        category_id: expenseCat,
+        type: "expense",
+        amount_cents: 1_000,
+        date: "2026-10-09",
+        description: "Autor forjado",
+        created_by: owner.id,
+      })
+      .select("id, created_by")
+      .single();
+    expect(created.error).toBeNull();
+    expect(created.data!.created_by).toBe(editor.id);
+
+    // Owner do espaço de destino (outsider) não consegue "puxar" a transação para o próprio espaço.
+    const moved = await editor.client.from("transactions").update({ space_id: otherSpaceId }).eq("id", created.data!.id);
+    expect(moved.error).not.toBeNull();
+    const accMoved = await editor.client.from("accounts").update({ space_id: otherSpaceId }).eq("id", accountId);
+    expect(accMoved.error).not.toBeNull();
+
+    const spoofUpdate = await editor.client
+      .from("transactions")
+      .update({ created_by: owner.id, description: "Editada" })
+      .eq("id", created.data!.id)
+      .select("created_by, description")
+      .single();
+    expect(spoofUpdate.data).toEqual({ created_by: editor.id, description: "Editada" });
+    await editor.client.from("transactions").delete().eq("id", created.data!.id);
+  });
+
   it("leitor não cria conta nem categoria; estranho não vê contas", async () => {
     const acc = await viewer.client.from("accounts").insert({ space_id: spaceId, name: "Hack", type: "cash" });
     expect(acc.error).not.toBeNull();

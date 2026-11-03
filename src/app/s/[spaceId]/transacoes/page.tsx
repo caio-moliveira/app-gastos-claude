@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { TransactionFormDialog } from "@/components/finance/transaction-form-dialog";
 import { TransactionList } from "@/components/finance/transaction-list";
@@ -71,6 +72,9 @@ export default async function TransactionsPage({
     for (const [k, v] of Object.entries(merged)) if (v) qs.set(k, v);
     return `${base}?${qs.toString()}`;
   };
+
+  // Página além do fim (link antigo ou exclusão do último item da última página).
+  if (page > pages) redirect(query({ pagina: pages > 1 ? String(pages) : undefined }));
 
   return (
     <div className="flex flex-col gap-5">
