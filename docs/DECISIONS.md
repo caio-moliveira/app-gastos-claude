@@ -70,3 +70,12 @@ Formato: contexto, alternativas, decisão e consequências.
 - Alternativas consideradas: views/funções SQL de agregação.
 - Decisão: as regras vivem em `src/lib/finance/rules.ts` (funções puras). As telas carregam o "razão" do espaço (`getLedger`: só as colunas necessárias, paginado de 1000 em 1000 para não esbarrar no limite do PostgREST) e aplicam as funções. Valores são `bigint` no banco e `number` inteiro em centavos no app (seguro até 2^53).
 - Consequências: uma única implementação das regras, testada e usada pela UI e pelo agente. O volume do MVP (centenas de transações por espaço por ano) é trivial; se crescer, a mesma lógica pode virar agregação SQL.
+
+## ADR-012: Seed determinístico com ids estáveis e upsert
+- Contexto: §9 exige `npm run seed` idempotente, com semente fixa, e o Auth/banco são compartilhados com outra implementação.
+- Decisão: `scripts/seed.ts` usa a service role localmente, e-mails próprios (`*.claude@cofre.test`), ids derivados por hash (`stableUuid`) e `upsert`; o gerador (`src/lib/seed/generator.ts`) é puro e usa PRNG com semente por espaço+mês. Ids antigos do próprio seed que deixaram de ser gerados são removidos; transações criadas por usuários nunca são tocadas. Só gera até a data de hoje.
+- Consequências: os números de Casa em outubro são reproduzíveis; rodar de novo não duplica.
+
+## ADR-013: Gráficos com Recharts e paleta validada
+- Contexto: §6.5 pede barras/rosca por categoria e linhas de 6 meses; §15.2 sugere Recharts.
+- Decisão: Recharts (client) em `src/components/finance/charts.tsx`; cores azul/laranja (slots 1–2 da paleta validada, claro e escuro) via variáveis CSS; legenda sempre presente com 2 séries, tooltip no hover e tabela "Detalhe por categoria" como alternativa acessível. Os números vêm de funções puras (`buildDashboard`).

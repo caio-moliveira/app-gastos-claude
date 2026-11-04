@@ -38,6 +38,9 @@ export type TransactionRow = {
 
 const PAGE = 1000;
 
+const LIST_COLUMNS =
+  "id, space_id, account_id, category_id, type, amount_cents, date, description, notes, transfer_to_account_id";
+
 export const getAccounts = cache(async (spaceId: string): Promise<Account[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -99,10 +102,25 @@ export type TransactionFilters = {
 
 export const TRANSACTIONS_PAGE_SIZE = 25;
 
-type ListFilters = TransactionFilters & { from?: string; to?: string };
+/** Maiores despesas de um intervalo (inclusive), da maior para a menor. */
+export const getTopExpenses = cache(async (spaceId: string, from: string, to: string, limit = 5): Promise<TransactionRow[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select(LIST_COLUMNS)
+    .eq("space_id", spaceId)
+    .eq("type", "expense")
+    .gte("date", from)
+    .lte("date", to)
+    .order("amount_cents", { ascending: false })
+    .order("date", { ascending: false })
+    .order("id")
+    .limit(limit);
+  if (error) throw new Error("Não foi possível carregar as maiores despesas.");
+  return (data ?? []).map((t) => ({ ...t, type: t.type as TransactionType, amount_cents: Number(t.amount_cents) }));
+});
 
-const LIST_COLUMNS =
-  "id, space_id, account_id, category_id, type, amount_cents, date, description, notes, transfer_to_account_id";
+type ListFilters = TransactionFilters & { from?: string; to?: string };
 
 /** Consulta de transações com os filtros da tela (ids já validados como UUID pela página). */
 function filteredTransactions(supabase: ServerSupabase, spaceId: string, filters: ListFilters, head: boolean) {
