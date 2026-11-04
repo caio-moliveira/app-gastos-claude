@@ -350,14 +350,16 @@ O MVP está pronto quando todos os itens abaixo forem verdadeiros na URL de prod
   - Verificado (etapa 2): E2E na Vercel (R$ 50 de "Banco E2E" → Carteira: saldos R$ 700 e R$ 50, receitas/despesas do mês inalteradas) e teste unitário "Receita e despesa do mês excluem transferências".
 - [ ] Dashboard mostra os quatro cards, os dois gráficos, orçamentos do mês e as 5 maiores despesas, e muda ao trocar o mês.
 - [ ] Orçamento criado, editado inline e copiado do mês anterior; status `ok`, `warning` e `exceeded` visíveis com o seed.
-- [ ] Seletor de espaço troca entre `Pessoal` e `Casa` e todos os números mudam de acordo.
+- [x] Seletor de espaço troca entre `Pessoal` e `Casa` e todos os números mudam de acordo.
+  - Verificado (etapa 3): `tests/e2e/dashboard.spec.ts` (Ana troca de Pessoal para Casa e o saldo total muda) e painel de Casa em outubro igual aos totais da lista filtrada no mesmo mês.
 - [ ] Link de convite leva um usuário logado para dentro do espaço com o papel correto.
 - [ ] Carla (leitora) não vê ações de escrita e recebe erro ao tentar escrever via API.
 - [ ] Agente responde às 5 perguntas de referência da seção 7.4 com os valores do seed e mostra histórico de conversas.
 - [ ] Chave da OpenRouter e `service_role` não aparecem em nenhum bundle do cliente.
 - [ ] Interface utilizável em 360 px de largura sem rolagem horizontal.
 - [ ] `npm test` verde, cobrindo os casos da seção 10.
-- [ ] `npm run seed` roda duas vezes sem duplicar dados.
+- [x] `npm run seed` roda duas vezes sem duplicar dados.
+  - Verificado (etapa 3): duas execuções seguidas contra o Supabase hospedado deram 402 (Pessoal) e 438 (Casa) transações nas duas vezes; ids estáveis + upsert.
 - [ ] `README.md` permite rodar do zero; `docs/DECISIONS.md` contém as decisões listadas na seção 12.
 - [ ] Repositório com histórico de commits legível (mensagens curtas e descritivas).
 
