@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient, type ServerSupabase } from "@/lib/supabase/server";
 import type { Tx } from "@/lib/finance/rules";
+import { escapeLike } from "@/lib/finance/search";
 import type { AccountType, CategoryKind, TransactionType } from "@/lib/validation/finance";
 
 export type Account = {
@@ -117,9 +118,7 @@ function filteredTransactions(supabase: ServerSupabase, spaceId: string, filters
   if (filters.categoryId) query = query.eq("category_id", filters.categoryId);
   if (filters.type) query = query.eq("type", filters.type);
   if (filters.search) {
-    // Escapa curingas do ILIKE para buscar o texto literal.
-    const term = filters.search.replace(/[\%_]/g, (c) => `\${c}`);
-    query = query.ilike("description", `%${term}%`);
+    query = query.ilike("description", `%${escapeLike(filters.search)}%`);
   }
   return query;
 }

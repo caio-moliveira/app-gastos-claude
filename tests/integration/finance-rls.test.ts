@@ -191,11 +191,16 @@ describe.skipIf(!hasSupabase)("contas, categorias e transações (Supabase)", ()
     expect(created.error).toBeNull();
     expect(created.data!.created_by).toBe(editor.id);
 
-    // Owner do espaço de destino (outsider) não consegue "puxar" a transação para o próprio espaço.
-    const moved = await editor.client.from("transactions").update({ space_id: otherSpaceId }).eq("id", created.data!.id);
-    expect(moved.error).not.toBeNull();
-    const accMoved = await editor.client.from("accounts").update({ space_id: otherSpaceId }).eq("id", accountId);
-    expect(accMoved.error).not.toBeNull();
+    // Mesmo quem edita os DOIS espaços (o dono) não move transação/conta/categoria entre eles:
+    // a RLS permitiria, quem barra é o trigger de imutabilidade de space_id.
+    const ownerSecond = (await owner.client.rpc("create_space", { p_name: "Segundo espaço", p_type: "individual" })).data as string;
+    const moved = await owner.client.from("transactions").update({ space_id: ownerSecond }).eq("id", created.data!.id);
+    expect(moved.error?.message).toContain("outro espaço");
+    const accMoved = await owner.client.from("accounts").update({ space_id: ownerSecond }).eq("id", accountId);
+    expect(accMoved.error?.message).toContain("outro espaço");
+    const catMoved = await owner.client.from("categories").update({ space_id: ownerSecond }).eq("id", expenseCat);
+    expect(catMoved.error?.message).toContain("outro espaço");
+    await owner.client.from("spaces").delete().eq("id", ownerSecond);
 
     const spoofUpdate = await editor.client
       .from("transactions")
