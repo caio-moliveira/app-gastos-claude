@@ -14,6 +14,82 @@ export type Database = {
   }
   claude: {
     Tables: {
+      accounts: {
+        Row: {
+          archived: boolean
+          created_at: string
+          id: string
+          initial_balance_cents: number
+          name: string
+          space_id: string
+          type: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          initial_balance_cents?: number
+          name: string
+          space_id: string
+          type: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          initial_balance_cents?: number
+          name?: string
+          space_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string | null
+          id: string
+          kind: string
+          name: string
+          space_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          kind: string
+          name: string
+          space_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -106,6 +182,83 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          account_id: string
+          amount_cents: number
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          description: string
+          id: string
+          notes: string | null
+          space_id: string
+          transfer_to_account_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          amount_cents: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date: string
+          description: string
+          id?: string
+          notes?: string | null
+          space_id: string
+          transfer_to_account_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          amount_cents?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          description?: string
+          id?: string
+          notes?: string | null
+          space_id?: string
+          transfer_to_account_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_space_id_account_id_fkey"
+            columns: ["space_id", "account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["space_id", "id"]
+          },
+          {
+            foreignKeyName: "transactions_space_id_category_id_fkey"
+            columns: ["space_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["space_id", "id"]
+          },
+          {
+            foreignKeyName: "transactions_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_space_id_transfer_to_account_id_fkey"
+            columns: ["space_id", "transfer_to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["space_id", "id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -116,8 +269,13 @@ export type Database = {
         Args: { p_name: string; p_type: string }
         Returns: string
       }
+      delete_category: {
+        Args: { p_category_id: string; p_move_to?: string }
+        Returns: undefined
+      }
       ensure_personal_space: { Args: never; Returns: string }
       is_space_member: { Args: { p_space_id: string }; Returns: boolean }
+      seed_space_defaults: { Args: { p_space_id: string }; Returns: undefined }
       space_role: { Args: { p_space_id: string }; Returns: string }
     }
     Enums: {
